@@ -191,6 +191,13 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
 .tarjeta .dato.reservado b{color:var(--warn)}
 .sin-abrir{margin-top:auto;cursor:default;opacity:.8;border-style:dashed}
 
+/* boletines */
+.fila-bol{grid-template-columns:76px 1fr auto;background:var(--panel)}
+.fila-bol .se{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;padding:8px 4px;background:var(--bg)}
+.fila-bol .se b{font:600 20px var(--serif);color:var(--acc)}
+.fila-bol .se span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+@media (max-width:640px){.fila-bol{grid-template-columns:64px 1fr}.fila-bol .btn{grid-column:1/-1}}
+
 </style></head><body>
 <div id="banda-local" class="banda-local" hidden>Vista local sin cifrar. No se publica esta carpeta.</div>
 
@@ -233,12 +240,13 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
 <div id="sitio" hidden>
   <header class="barra"><div class="env">
     <a class="nombre" href="#portada"><img class="logo-mini" src="img/logo.webp" alt="" width="34" height="33"><span>EPICSSCH</span></a>
-    <nav aria-label="Secciones"><a href="#presentaciones">Presentaciones</a><a href="#tableros">Tableros de trabajo</a><a href="#guias">Guías y protocolos</a><a href="#cuestionarios">Cuestionarios de campo</a></nav>
+    <nav aria-label="Secciones"><a href="#presentaciones">Presentaciones</a><a href="#boletines">Boletines</a><a href="#tableros">Tableros de trabajo</a><a href="#guias">Guías y protocolos</a><a href="#cuestionarios">Cuestionarios de campo</a></nav>
   </div></header>
   <main>
     <div class="portada" id="portada"></div>
     <div class="env">
       <section class="sec" id="presentaciones"></section>
+      <section class="sec" id="boletines"></section>
       <section class="sec" id="tableros"></section>
       <section class="sec" id="guias"></section>
       <section class="sec" id="cuestionarios"></section>
@@ -256,7 +264,7 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
   <iframe title="Presentación" allow="fullscreen" allowfullscreen></iframe>
 </div>
 
-<script>window.__CFG={"cifrado": true, "salt": "VrKqvFSFng3gLyN3G5RR9A==", "it": 250000, "puerta_imagen": "img/hero.webp"};</script>
+<script>window.__CFG={"cifrado": true, "salt": "hYIwRT4H/KXIRTuY3Krzqg==", "it": 250000, "puerta_imagen": "img/hero.webp"};</script>
 <script>
 (function(){
 "use strict";
@@ -425,6 +433,21 @@ function renderPresentaciones(S,P,B){
   pinta2();
 }
 
+function renderBoletines(S,B){
+  var items=B.items.slice().sort(function(a,b){return (b.anio*100+b.se)-(a.anio*100+a.se);}), limite=8;
+  var h=cinta("boletines",S)+'<p class="nota">'+esc(B.nota)+'</p><ul class="lista-filas" id="l-bol"></ul><p id="m-bol" style="text-align:center"></p>';
+  document.getElementById("boletines").innerHTML=h;
+  function pinta(){
+    $("#l-bol").innerHTML=items.slice(0,limite).map(function(b,i){
+      return '<li class="fila fila-bol"><div class="se"><b>SE '+b.se+'</b><span>'+b.anio+'</span></div><div class="fila-txt"><h4>'+esc(b.titulo)+'</h4>'
+       +'<div class="fila-meta">'+esc(b.periodo)+'</div><p class="snip">'+esc(b.resumen)+'</p>'
+       +'<div class="chips"><span class="chip">Versión '+esc(String(b.version).toLowerCase())+'</span>'+(i===0?'<span class="chip">El más reciente</span>':'')+'</div></div>'
+       +'<button class="btn" data-abrir="'+esc(b.archivo)+'" data-titulo="'+esc(b.titulo)+'">Abrir boletín</button></li>';}).join("");
+    $("#m-bol").innerHTML=items.length>limite?'<button type="button" class="btn sec" id="mas-bol">Mostrar más ('+(items.length-limite)+')</button>':"";
+    var b=$("#mas-bol"); if(b)b.onclick=function(){limite+=8;pinta();};
+  }
+  pinta();
+}
 function renderTableros(S,T){
   var h=cinta("tableros",S)+'<p class="nota">'+esc(T.nota)+'</p><div class="rejilla">';
   T.items.forEach(function(t){
@@ -486,7 +509,7 @@ function renderPie(S){
 function pinta(){
   var S=DATOS.sitio;
   document.title=S.titulo;
-  renderPortada(S); renderPresentaciones(S,DATOS.presentaciones,DATOS.busqueda); renderTableros(S,DATOS.tableros); renderGuias(S,DATOS.guias);
+  renderPortada(S); renderPresentaciones(S,DATOS.presentaciones,DATOS.busqueda); renderBoletines(S,DATOS.boletines); renderTableros(S,DATOS.tableros); renderGuias(S,DATOS.guias);
   renderCuestionarios(S,DATOS.cuestionarios); renderPie(S);
   $("#puerta").hidden=true; $("#sitio").hidden=false;
 }
