@@ -227,7 +227,7 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
         <label class="campo"><span>Nombre y apellido</span><input id="i-nombre" type="text" autocomplete="name" maxlength="100" required></label>
         <label class="campo"><span>Cargo</span><input id="i-cargo" type="text" maxlength="80" required></label>
         <label class="campo"><span>Instalación</span><select id="i-instalacion" required><option value="">Escoja su instalación</option></select></label>
-        <label class="campo"><span>Correo</span><input id="i-correo" type="email" autocomplete="email" maxlength="120" required></label>
+        <label class="campo"><span id="i-correo-et">Correo</span><input id="i-correo" type="email" autocomplete="email" maxlength="120" required></label>
         <details class="privacidad" open><summary id="priv-titulo"></summary><div id="priv-cuerpo"></div></details>
         <label class="acepto"><input id="i-acepto" type="checkbox"><span id="i-acepto-texto"></span></label>
         <button class="btn" id="btn-inscribir" type="submit">Inscribirme</button>
@@ -264,7 +264,7 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
   <iframe title="Presentación" allow="fullscreen" allowfullscreen></iframe>
 </div>
 
-<script>window.__CFG={"cifrado": true, "salt": "CxzwN3CgcODUbEad0R48Nw==", "it": 250000, "puerta_imagen": "img/hero.webp"};</script>
+<script>window.__CFG={"cifrado": true, "modo": "inscripcion", "servidor": "https://script.google.com/macros/s/AKfycbwjTJ7fQVIzXKelM3nmi7HZLOFm2X5Ov5j7M-Wt7v0RCyWQrCejRhLI_39L0Wmov5vXzA/exec", "huella": "60d16585", "instalaciones": ["Hospital Regional Rafael Hern\u00e1ndez", "Policl\u00ednica Gustavo A. Ros", "Policl\u00ednica Especializada Rodrigo Hidalgo", "Hospital Dionisio Arrocha", "Policl\u00ednica Pablo Espinosa", "Policl\u00ednica de Volc\u00e1n", "Policl\u00ednica de Boquete", "Policl\u00ednica de Dival\u00e1", "ULAPS de Dolega", "CAPPS (centros de atenci\u00f3n primaria)", "Epidemiolog\u00eda Regional", "Otra instalaci\u00f3n"], "dominios": ["css.gob.pa"], "titulo_privacidad": "Aviso de privacidad", "privacidad": {"que_se_guarda": "Su nombre, su cargo, su instalaci\u00f3n y su correo; la fecha de su inscripci\u00f3n, la fecha de su primer y de su \u00faltimo acceso, y cu\u00e1ntas veces ha entrado. No se pide c\u00e9dula ni se guarda qu\u00e9 presentaciones o documentos abre.", "para_que": "Saber qu\u00e9 personal de la Caja de Seguro Social consulta el material, avisarle cuando se actualice, y poder suspender el acceso de una persona si hiciera mal uso del portal.", "quien_lo_ve": "Solo el Dr. Manuel S. Nazas R., desde una hoja privada de su cuenta personal de Google. No se publica, no se comparte con otras personas ni se usa para otra finalidad. Google presta el servicio donde se guarda la hoja.", "sus_derechos": "Puede pedir que se corrija o se borre su inscripci\u00f3n escribiendo a mnazas@css.gob.pa. Si la borran, podr\u00e1 inscribirse de nuevo cuando quiera.", "aceptacion": "He le\u00eddo el aviso de privacidad y acepto que se guarden estos datos para ese fin."}, "puerta_imagen": "img/hero-baru.webp"};</script>
 <script>
 (function(){
 "use strict";
@@ -477,7 +477,8 @@ function renderGuias(S,G){
       return '<li class="ficha"><div class="chips"><span class="chip">'+esc(g.tipo)+'</span>'+(g.anio?'<span class="chip">'+g.anio+'</span>':'')+'</div>'
        +'<h4>'+esc(g.titulo)+'</h4><p class="uso">'+esc(g.uso)+'</p>'
        +'<div class="pie"><span>Origen: <b>'+esc(g.origen)+'</b></span><span>Dónde: <b>'+esc(g.ubicacion)+'</b></span>'
-       +(g.enlace?'<a href="'+esc(g.enlace)+'" target="_blank" rel="noopener noreferrer">Fuente oficial</a>':'')+'</div></li>';}).join("")
+       +(g.enlace?'<a href="'+esc(g.enlace)+'" target="_blank" rel="noopener noreferrer">Fuente oficial</a>':'')+'</div>'
+       +(g.archivo?'<button class="btn" data-abrir="'+esc(g.archivo)+'" data-titulo="'+esc(g.titulo)+'">Abrir documento</button>':'')+'</li>';}).join("")
      :'<li class="vacio">Ninguna ficha coincide con la búsqueda.</li>';
   }
   ["Todas"].concat(tipos).forEach(function(t){
@@ -515,7 +516,7 @@ function pinta(){
 }
 
 /* ---- visor de presentaciones ---- */
-var textoActual=null;
+var textoActual=null, pdfActual=null;
 /* El deck del estudiante arma su propio lienzo escalado; como el portal lo tiene ya descifrado,
    se lo entrega por window.nazasLienzoHtml (el mismo mecanismo del aula de UDELAS) y se escribe
    en el marco, sin pedirlo otra vez. */
@@ -528,11 +529,16 @@ async function abrirDeck(ruta,titulo){
   document.body.style.overflow="hidden";
   try{
     var buf=await traer(ruta);
-    textoActual=new TextDecoder().decode(buf);
     var nuevo=f.cloneNode(false); nuevo.removeAttribute("src"); f.parentNode.replaceChild(nuevo,f);
-    escribirDeck(nuevo.contentWindow,textoActual);
+    if(pdfActual){URL.revokeObjectURL(pdfActual); pdfActual=null;}
+    if(/\.pdf$/i.test(ruta)){
+      textoActual=null; pdfActual=URL.createObjectURL(new Blob([buf],{type:"application/pdf"})); nuevo.src=pdfActual;
+    }else{
+      textoActual=new TextDecoder().decode(buf);
+      escribirDeck(nuevo.contentWindow,textoActual);
+    }
     setTimeout(function(){$("#visor .carga").hidden=true; try{nuevo.contentWindow.focus();}catch(e){}},1200);
-  }catch(e){ $("#visor .carga").textContent="No se pudo abrir la presentación. "+e.message; }
+  }catch(e){ $("#visor .carga").textContent="No se pudo abrir. "+e.message; }
 }
 function cerrarDeck(){
   var v=$("#visor"); v.classList.remove("abierto"); try{$("#visor iframe").contentWindow.document.open();$("#visor iframe").contentWindow.document.close();}catch(e){}
@@ -544,7 +550,7 @@ function eventos(){
   });
   $("#visor-cerrar").onclick=cerrarDeck;
   $("#visor-pantalla").onclick=function(){var f=$("#visor iframe"); if(f.requestFullscreen) f.requestFullscreen();};
-  $("#visor-pestana").onclick=function(){ if(!textoActual) return; var w=window.open("about:blank","_blank"); if(w) escribirDeck(w,textoActual); };
+  $("#visor-pestana").onclick=function(){ if(pdfActual){window.open(pdfActual,"_blank");return;} if(!textoActual) return; var w=window.open("about:blank","_blank"); if(w) escribirDeck(w,textoActual); };
   document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&$("#visor").classList.contains("abierto")&&!document.fullscreenElement) cerrarDeck(); });
 }
 
@@ -595,6 +601,9 @@ function armarPuertaInscripcion(){
   $("#priv-cuerpo").innerHTML=[["Qué se guarda",P.que_se_guarda],["Para qué",P.para_que],["Quién lo ve",P.quien_lo_ve],["Sus derechos",P.sus_derechos]]
     .map(function(x){return "<p><b>"+esc(x[0])+".</b> "+esc(x[1])+"</p>";}).join("");
   $("#i-acepto-texto").textContent=P.aceptacion;
+  var DOM=C.dominios||[];
+  if(DOM.length){ $("#i-correo-et").textContent="Correo institucional (@"+DOM.join(", @")+")"; $("#i-correo").placeholder="nombre@"+DOM[0]; }
+  function dominioOk(c){ var d=(c.split("@")[1]||"").toLowerCase(); return !DOM.length||DOM.some(function(x){return d===x||d.slice(-x.length-1)==="."+x;}); }
   var pest=document.querySelectorAll("#puerta-insc [role=tab]");
   function ver(cual){
     [].forEach.call(pest,function(b){b.setAttribute("aria-selected",b.dataset.vista===cual?"true":"false");});
@@ -624,6 +633,7 @@ function armarPuertaInscripcion(){
   });
   $("#form-inscribir").addEventListener("submit",function(ev){
     ev.preventDefault(); var c=$("#i-correo").value.trim();
+    if(!dominioOk(c)){ $("#aviso-insc").textContent="Use su correo institucional (@"+DOM.join(", @")+")."; return; }
     if(!$("#i-acepto").checked){ $("#aviso-insc").textContent="Para inscribirse debe aceptar el aviso de privacidad."; return; }
     enviar($("#btn-inscribir"),"Inscribirme",{accion:"inscribir",nombre:$("#i-nombre").value,cargo:$("#i-cargo").value,
       instalacion:$("#i-instalacion").value,correo:c,acepto:true},c);
