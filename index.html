@@ -198,6 +198,19 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
 .fila-bol .se span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 @media (max-width:640px){.fila-bol{grid-template-columns:64px 1fr}.fila-bol .btn{grid-column:1/-1}}
 
+/* franja de alertas del día (enlace fijo al panel que se republica a las 6:00) */
+.alertas-dia{position:relative;display:grid;grid-template-columns:auto 1fr auto;gap:18px 22px;align-items:center;margin:40px 0 8px;padding:22px 24px;
+border:1px solid rgba(255,94,122,.45);border-radius:14px;background:linear-gradient(90deg,rgba(255,94,122,.12),var(--panel) 55%)}
+.alertas-dia .marca{color:var(--alert)}
+.alertas-dia h2{font:600 clamp(22px,3.2vw,30px)/1.15 var(--serif);margin:6px 0 6px}
+.alertas-dia p{margin:0;max-width:44rem;color:var(--ink);opacity:.86}
+.alertas-dia .al-nota{margin-top:6px;font-size:14px;color:var(--muted);opacity:1}
+.alertas-dia .al-txt{min-width:0}
+.alertas-dia .pulso{width:14px;height:14px;border-radius:50%;background:var(--alert);box-shadow:0 0 0 0 rgba(255,94,122,.6);align-self:start;margin-top:8px}
+@media (prefers-reduced-motion:no-preference){.alertas-dia .pulso{animation:pulso 2.4s ease-out infinite}}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(255,94,122,.55)}70%{box-shadow:0 0 0 12px rgba(255,94,122,0)}100%{box-shadow:0 0 0 0 rgba(255,94,122,0)}}
+@media (max-width:640px){.alertas-dia{grid-template-columns:auto 1fr;padding:18px 16px}.alertas-dia .btn{grid-column:1/-1;width:100%}}
+
 </style></head><body>
 <div id="banda-local" class="banda-local" hidden>Vista local sin cifrar. No se publica esta carpeta.</div>
 
@@ -240,11 +253,12 @@ mark{background:rgba(0,210,255,.22);color:var(--acc2);border-radius:3px;padding:
 <div id="sitio" hidden>
   <header class="barra"><div class="env">
     <a class="nombre" href="#portada"><img class="logo-mini" src="img/logo.webp" alt="" width="34" height="33"><span>EPICSSCH</span></a>
-    <nav aria-label="Secciones"><a href="#presentaciones">Presentaciones</a><a href="#boletines">Boletines</a><a href="#tableros">Tableros de trabajo</a><a href="#guias">Guías y protocolos</a><a href="#cuestionarios">Cuestionarios de campo</a></nav>
+    <nav aria-label="Secciones"><a href="#alertas">Alertas</a><a href="#presentaciones">Presentaciones</a><a href="#boletines">Boletines</a><a href="#tableros">Tableros de trabajo</a><a href="#guias">Guías y protocolos</a><a href="#cuestionarios">Cuestionarios de campo</a></nav>
   </div></header>
   <main>
     <div class="portada" id="portada"></div>
     <div class="env">
+      <section class="alertas-dia" id="alertas" hidden></section>
       <section class="sec" id="presentaciones"></section>
       <section class="sec" id="boletines"></section>
       <section class="sec" id="tableros"></section>
@@ -314,6 +328,16 @@ function renderPortada(S){
    +'<div class="atajos"><a class="btn" href="#presentaciones">Ver presentaciones</a>'
    +'<a class="btn sec" href="#tableros">Tableros de trabajo</a><a class="btn sec" href="#guias">Guías y protocolos</a><a class="btn sec" href="#cuestionarios">Cuestionarios de campo</a></div></div>';
   fondo($(".fondo",h),S.imagenes.hero);
+}
+/* Franja de alertas: enlace fijo al panel que la tarea de las 6:00 republica cada día.
+   El portal no se reconstruye a diario; lo que cambia es el contenido detrás del enlace. */
+function renderAlertas(S){
+  var A=S.alertas, el=document.getElementById("alertas");
+  if(!A||!A.url){el.hidden=true;return;}
+  el.innerHTML='<div class="pulso" aria-hidden="true"></div><div class="al-txt"><div class="marca">Vigilancia internacional y nacional</div>'
+   +'<h2>'+esc(A.titulo)+'</h2><p>'+esc(A.texto)+'</p><p class="al-nota">'+esc(A.nota)+'</p></div>'
+   +'<a class="btn" href="'+esc(A.url)+'" target="_blank" rel="noopener">'+esc(A.boton)+'</a>';
+  el.hidden=false;
 }
 function cinta(id,S){
   var s=S.secciones[id];
@@ -477,7 +501,7 @@ function renderGuias(S,G){
       return '<li class="ficha"><div class="chips"><span class="chip">'+esc(g.tipo)+'</span>'+(g.anio?'<span class="chip">'+g.anio+'</span>':'')+'</div>'
        +'<h4>'+esc(g.titulo)+'</h4><p class="uso">'+esc(g.uso)+'</p>'
        +'<div class="pie"><span>Origen: <b>'+esc(g.origen)+'</b></span><span>Dónde: <b>'+esc(g.ubicacion)+'</b></span>'
-       +(g.enlace?'<a href="'+esc(g.enlace)+'" target="_blank" rel="noopener noreferrer">Fuente oficial</a>':'')+'</div>'
+       +(g.enlace?'<a href="'+esc(g.enlace)+'" target="_blank" rel="noopener noreferrer">'+(/^https:\/\/(drive|docs)\.google\.com\//.test(g.enlace)?'Abrir en Google Drive':'Fuente oficial')+'</a>':'')+'</div>'
        +(g.archivo?'<button class="btn" data-abrir="'+esc(g.archivo)+'" data-titulo="'+esc(g.titulo)+'">Abrir documento</button>':'')+'</li>';}).join("")
      :'<li class="vacio">Ninguna ficha coincide con la búsqueda.</li>';
   }
@@ -510,7 +534,7 @@ function renderPie(S){
 function pinta(){
   var S=DATOS.sitio;
   document.title=S.titulo;
-  renderPortada(S); renderPresentaciones(S,DATOS.presentaciones,DATOS.busqueda); renderBoletines(S,DATOS.boletines); renderTableros(S,DATOS.tableros); renderGuias(S,DATOS.guias);
+  renderPortada(S); renderAlertas(S); renderPresentaciones(S,DATOS.presentaciones,DATOS.busqueda); renderBoletines(S,DATOS.boletines); renderTableros(S,DATOS.tableros); renderGuias(S,DATOS.guias);
   renderCuestionarios(S,DATOS.cuestionarios); renderPie(S);
   $("#puerta").hidden=true; $("#sitio").hidden=false;
 }
